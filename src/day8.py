@@ -63,6 +63,35 @@ class Tree:
 
         return result
 
+    @property
+    def scenic_score(self) -> int:
+
+        trees_left = 0
+        for x in range(self.x - 1, -1, -1):
+            trees_left += 1
+            if self.grid[self.y][x].height >= self.height:
+                break
+
+        trees_right = 0
+        for x in range(self.x + 1, self.grid.width):
+            trees_right += 1
+            if self.grid[self.y][x].height >= self.height:
+                break
+
+        trees_up = 0
+        for y in range(self.y - 1, -1, -1):
+            trees_up += 1
+            if self.grid[y][self.x].height >= self.height:
+                break
+
+        trees_down = 0
+        for y in range(self.y + 1, self.grid.height):
+            trees_down += 1
+            if self.grid[y][self.x].height >= self.height:
+                break
+
+        return trees_left * trees_right * trees_up * trees_down
+
 
 class Grid(list):
 
@@ -94,6 +123,15 @@ def puzzle1(grid: Grid) -> int:
     return sum([int(tree.is_visible) for tree in grid])
 
 
+def puzzle2(grid: Grid) -> int:
+    highest_scenic_score = grid[0][0]
+    for tree in grid:
+        if tree.scenic_score > highest_scenic_score.scenic_score:
+            highest_scenic_score = tree
+    return highest_scenic_score.scenic_score
+
+
 if __name__ == "__main__":
-    grid = parse_input("../input/day8.txt")
-    print(puzzle1(grid))
+    grid_ = parse_input("../input/day8.txt")
+    print(puzzle1(grid_))
+    print(puzzle2(grid_))
