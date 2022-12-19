@@ -3,11 +3,13 @@ import abc
 from dataclasses import dataclass
 from typing import TypeVar
 
+
 class AbstractInstruction(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def execute(self, cpu: CPU) -> None:
         ...
+
 
 class NoOpInstruction(AbstractInstruction):
 
@@ -21,7 +23,7 @@ class NoOpInstruction(AbstractInstruction):
 class AddXInstruction(AbstractInstruction):
 
     def __init__(self, value: int):
-        self.execution_cycles = 1
+        self.execution_cycles = 2
         self.value = value
 
     def execute(self, cpu: CPU):
@@ -55,11 +57,9 @@ class ExecutionState:
             raise StopIteration
 
         self._cycle_count += 1
+        self._instruction_queue[0].execution_cycles -= 1
 
-        if self._instruction_queue[0].execution_cycles > 0:
-            self._instruction_queue[0].execution_cycles -= 1
-
-        else:
+        if not self._instruction_queue[0].execution_cycles:
             self._instruction_queue.pop(0).execute(self._cpu)
 
         return self
@@ -84,16 +84,15 @@ def puzzle1(execution_state: ExecutionState) -> int:
     result = 0
 
     while True:
+        register_value = execution_state.cpu.x
         try:
             execution_state = next(execution_state)
         except StopIteration:
             break
 
-        print(execution_state.cycle_count, execution_state.cpu.x)
-
         if execution_state.cycle_count in [20, 60, 100, 140, 180, 220]:
-            print("Signal:", execution_state.signal_strength)
-            result += execution_state.signal_strength
+            signal_strength = execution_state.cycle_count * register_value
+            result += signal_strength
 
     return result
 
@@ -101,7 +100,7 @@ def puzzle1(execution_state: ExecutionState) -> int:
 if __name__ == "__main__":
     state = ExecutionState()
 
-    with open("../input/day10sample.txt", "r") as fp:
+    with open("../input/day10.txt", "r") as fp:
         for line in fp:
             state.queue_instruction(parse_instruction(line.rstrip()))
 
