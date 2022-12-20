@@ -47,6 +47,16 @@ class CPU:
 
 class ExecutionState:
 
+    @classmethod
+    def from_file(cls, filename: str) -> ExecutionState:
+        result = cls()
+
+        with open(filename, "r") as fp:
+            for line in fp:
+                result.queue_instruction(parse_instruction(line.rstrip()))
+
+        return result
+
     def __init__(self):
         self._cycle_count: int = 0
         self._cpu = CPU()
@@ -80,11 +90,13 @@ class ExecutionState:
         self._instruction_queue.append(instruction)
 
 
-def puzzle1(execution_state: ExecutionState) -> int:
+def puzzle1(filename: str) -> int:
     result = 0
+    execution_state = ExecutionState.from_file(filename)
 
     while True:
         register_value = execution_state.cpu.x
+
         try:
             execution_state = next(execution_state)
         except StopIteration:
@@ -97,11 +109,30 @@ def puzzle1(execution_state: ExecutionState) -> int:
     return result
 
 
+def puzzle2(filename: str):
+
+    def _draw_pixel(cycle: int, value: int) -> bool:
+        values = list(range(value, value + 3))
+        return cycle in values
+
+    execution_state = ExecutionState.from_file(filename)
+
+    while True:
+        register = execution_state.cpu.x
+
+        try:
+            execution_state = next(execution_state)
+        except StopIteration:
+            break
+
+        cycle = execution_state.cycle_count % 40
+        print(
+            "#" if _draw_pixel(cycle, register) else ".",
+            end="\n" if not cycle else ""
+        )
+
+
 if __name__ == "__main__":
-    state = ExecutionState()
-
-    with open("../input/day10.txt", "r") as fp:
-        for line in fp:
-            state.queue_instruction(parse_instruction(line.rstrip()))
-
-    print(puzzle1(state))
+    input_ = "../input/day10.txt"
+    print(puzzle1(input_))
+    puzzle2(input_)
