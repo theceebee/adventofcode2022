@@ -124,7 +124,7 @@ class HeightMap:
         return _HeightMapCoordinate(x, y, self)
 
     @cache
-    def get_shortest_path_distance(self) -> int:
+    def dijkstra(self, src: _HeightMapCoordinate) -> list[int]:
 
         visited: list[int] = []
         cost: list[int] = []
@@ -135,7 +135,7 @@ class HeightMap:
             cost.append(sys.maxsize)
             prev.append(-1)
 
-        cost[self.start_coordinate.index] = 0
+        cost[src.index] = 0
 
         for i in range(len(self)):
             min_cost = sorted([(i, c, v) for i, (c, v) in enumerate(zip(cost, visited)) if not v], key=itemgetter(1))[0][0]
@@ -151,11 +151,27 @@ class HeightMap:
 
             visited[min_cost] = 1
 
-        return cost[self.end_coordinate.index]
+        return cost
 
 
 def puzzle1(height_map_: HeightMap) -> int:
-    return height_map_.get_shortest_path_distance()
+    distance = height_map_.dijkstra(height_map_.start_coordinate)
+    return distance[height_map_.end_coordinate.index]
+
+
+def puzzle2(height_map_: HeightMap) -> int:
+    result = sys.maxsize
+
+    for i in range(len(height_map_)):
+        if height_map_[i].height > 0:
+            continue
+
+        distances = height_map_.dijkstra(height_map_[i])
+        new_distance = distances[height_map_.end_coordinate.index]
+        if new_distance < result:
+            result = new_distance
+
+    return result
 
 
 if __name__ == "__main__":
@@ -163,4 +179,4 @@ if __name__ == "__main__":
         height_map = HeightMap(lines=[line.strip() for line in fp])
 
     print(puzzle1(height_map))
-
+    print(puzzle2(height_map))
