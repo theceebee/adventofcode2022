@@ -1,5 +1,7 @@
 from __future__ import annotations
+from operator import itemgetter
 import string
+import sys
 from functools import cache
 
 
@@ -32,14 +34,18 @@ class _HeightMapCoordinate:
     @cache
     def is_adjacent(self, x: int, y: int) -> bool:
 
-        if not abs(self.x - x) == 1 and not abs(self.y - y) == 1:
+        x_offset = abs(self.x - x)
+        y_offset = abs(self.y - y)
+
+        if not (x_offset != 1 or y_offset != 1) or x_offset + y_offset != 1:
             return False
 
-        elif not abs(self.height - self.parent.coordinate(x, y).height) <= 1:
+        elif self.parent.coordinate(x, y).height - self.height > 1:
             return False
 
         return True
 
+    @property
     @cache
     def adjacent(self) -> list[_HeightMapCoordinate]:
         result = []
@@ -119,75 +125,42 @@ class HeightMap:
 
     @cache
     def get_shortest_path_distance(self) -> int:
-        start_index = self.start_coordinate.index
-        distance = [float("inf") if i != start_index else 0 for i in range(len(self))]
 
-        visited: set[_HeightMapCoordinate] = set()
-        while self.end_coordinate not in visited:
-            pass
+        visited: list[int] = []
+        cost: list[int] = []
+        prev: list[int] = []
 
-        return len(distance)
+        for __ in range(len(self)):
+            visited.append(0)
+            cost.append(sys.maxsize)
+            prev.append(-1)
+
+        cost[self.start_coordinate.index] = 0
+
+        for i in range(len(self)):
+            min_cost = sorted([(i, c, v) for i, (c, v) in enumerate(zip(cost, visited)) if not v], key=itemgetter(1))[0][0]
+
+            if cost[min_cost] == sys.maxsize:
+                break
+
+            for adjacent in self[min_cost].adjacent:
+                new_cost = cost[min_cost] + 1
+                if new_cost < cost[adjacent.index]:
+                    cost[adjacent.index] = new_cost
+                    prev[adjacent.index] = min_cost
+
+            visited[min_cost] = 1
+
+        return cost[self.end_coordinate.index]
 
 
-class Graph:
-
-    @classmethod
-    def from_file(cls, filename):
-        with open(filename, "r") as fp:
-            lines = [line.strip() for line in fp]
-
-        n = len(lines) * len(lines[0])
-        print(n)
-        return cls(n)
-
-    def __init__(self, number_of_vertices: int):
-        self._number_of_vertices = number_of_vertices
-        self._adjacency_list: list[set[int]] = []
-
-    @property
-    def number_of_vertices(self) -> int:
-        return self._number_of_vertices
-
-    def add_edge(self, u: int, v: int):
-        self._adjacency_list[v].add(u)
+def puzzle1(height_map_: HeightMap) -> int:
+    return height_map_.get_shortest_path_distance()
 
 
 if __name__ == "__main__":
-
-    # map_ = {"S": "a", "E": "z"}
-
-
-    with open("../input/day12sample.txt", "r") as fp:
+    with open("../input/day12.txt", "r") as fp:
         height_map = HeightMap(lines=[line.strip() for line in fp])
 
-    print(f"{height_map.width} x {height_map.height}")
-    print(height_map.start_coordinate)
-    print(height_map.end_coordinate)
-    print(height_map.get_shortest_path_distance())
-    print(height_map[0])
-    print(height_map[21])
-    print(height_map[39])
+    print(puzzle1(height_map))
 
-    # g = Graph(len(lines) * len(lines[0]))
-    #
-    # sentinel = 0
-    # start = 0
-    # end = 0
-    # for v in range(1, len(lines)):
-    #     for u in range(1, len(lines[0])):
-    #         value = lines[v - 1][u - 1]
-    #         if value == "S":
-    #             start = sentinel
-    #         elif value == "E":
-    #             end = sentinel
-    #         right = lines[v - 1][u]
-    #         down = lines[v][u - 1]
-    #
-    #         if map_.get(right, right) - map_.get(value, value) <= 1:
-    #             g.add_edge(u, v - 1)
-    #
-    #
-    #
-    #         sentinel += 1
-    #
-    #     # print("\n", end="")
