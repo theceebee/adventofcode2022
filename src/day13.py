@@ -1,7 +1,5 @@
-import logging
 from itertools import zip_longest
-
-logger = logging.getLogger(__name__)
+from operator import mul
 
 
 class PacketList(list):
@@ -96,7 +94,7 @@ class PacketList(list):
         return False
 
 
-def parse_input(filename: str) -> list[tuple]:
+def parse_input_pairs(filename: str) -> list[tuple]:
     result: list[tuple] = []
     with open(filename, "r") as fp:
         pair = ()
@@ -111,16 +109,22 @@ def parse_input(filename: str) -> list[tuple]:
     return result
 
 
-def debug(filename: str):
-    for i, pair in enumerate(parse_input(filename), start=1):
-        print(f"{i}: {pair[0] < pair[1]}")
+def parse_input_list(filename: str) -> list[PacketList]:
+    with open(filename, "r") as fp:
+        return [PacketList(eval(line)) for i, line in enumerate(fp, start=1) if i % 3]
 
 
 def puzzle1(filename: str) -> int:
-    return sum([i for i, pair in enumerate(parse_input(filename), start=1) if pair[0] < pair[1]])
+    return sum([i for i, pair in enumerate(parse_input_pairs(filename), start=1) if pair[0] < pair[1]])
+
+
+def puzzle2(filename: str) -> int:
+    divider_packets: list[PacketList] = [PacketList([[2]]), PacketList([[6]])]
+    input_packets: list[PacketList] = parse_input_list(filename)
+    indices = [i for i, packet in enumerate(sorted(divider_packets + input_packets), start=1) if packet in divider_packets]
+    return mul(*indices)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
     print(puzzle1("../input/day13.txt"))
-
+    print(puzzle2("../input/day13.txt"))
