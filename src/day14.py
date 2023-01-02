@@ -20,6 +20,7 @@ class Cave:
         self._rock: dict[int, dict[int, int]] = {}
         self._sand_source: tuple[int, int] = (500, 0)
         self._resting_sand: dict[int, dict[int, int]] = {}
+        self.floor: bool = False
 
     def __str__(self):
         result = ""
@@ -28,7 +29,7 @@ class Cave:
         for y in range(max_[1] + 1):  # y-minimum is always 0.
             for x in range(min_[0], max_[0] + 1):
                 result += (
-                    "#" if self.is_rock(x, y)
+                    "#" if self.is_rock(x, y) or self.is_floor(y)
                     else "o" if self.is_resting_sand(x, y)
                     else "+" if self.is_sand_source(x, y)
                     else "."
@@ -40,12 +41,22 @@ class Cave:
     @property
     def min(self) -> tuple[int, int]:
         min_x_values = [min(v) for v in self._rock.values()]
-        return min(min_x_values), 0
+        min_x_values.extend([min(v) for v in self._resting_sand.values()])
+        min_x = min(min_x_values)
+        if self.floor:
+            min_x -= 2
+        return min_x, 0
 
     @property
     def max(self) -> tuple[int, int]:
         max_x_values = [max(v) for v in self._rock.values()]
-        return max(max_x_values), max(self._rock)
+        max_x_values.extend([max(v) for v in self._resting_sand.values()])
+        max_x = max(max_x_values)
+        max_y = max(self._rock)
+        if self.floor:
+            max_x += 2
+            max_y += 2
+        return max_x, max_y
 
     @property
     def resting_sand_count(self) -> int:
@@ -86,6 +97,9 @@ class Cave:
     def add_resting_sand(self, x: int, y: int):
         self._resting_sand.setdefault(y, dict())[x] = 1
 
+    def is_floor(self, y: int) -> bool:
+        return self.floor and y == self.max[1]
+
     def is_rock(self, x: int, y: int) -> bool:
         return y in self._rock and self._rock[y].get(x) == 1
 
@@ -94,16 +108,6 @@ class Cave:
 
     def is_sand_source(self, x: int, y: int) -> bool:
         return (x, y) == self._sand_source
-
-    # def get_sand_sources(self) -> list[tuple[int, int]]:
-    #     result: list[tuple[int, int]] = []
-    #     min_ = self.min
-    #     max_ = self.max
-    #     for y in range(max_[1] + 1):  # y-minimum is always 0.
-    #         for x in range(min_[0], max_[0] + 1):
-    #             if self.is_sand_source(x, y):
-    #                 result.append((x, y))
-    #     return result
 
 
 class CaveSim:
@@ -128,11 +132,12 @@ class CaveSim:
             if not self.is_in_cave(*next_position):
                 break
 
-            if not (self.cave.is_rock(*next_position) or self.cave.is_resting_sand(*next_position)):
+            if not (self.cave.is_rock(*next_position) or self.cave.is_resting_sand(*next_position) or self.cave.is_floor(next_position[1])):
                 self.active_sand = next_position
                 return
 
-        # If we've made it this far then either the sand can't go anywhere else, or it's run out of the cave and cannot come to rest.
+        # If we've made it this far then either the sand can't go anywhere else, or it's run out of the cave and cannot
+        # come to rest.
         if self.is_in_cave(*next_position):
             self.cave.add_resting_sand(*self.active_sand)
 
@@ -161,8 +166,34 @@ class CaveSim:
 
             self.tick()
 
+    def tick_until_cave_blocks(self):
+
+        if not self.active_sand:
+            self.tick()
+
+        while True:
+            if self.active_sand is None and self.cave.is_resting_sand(*self.cave.sand_source):
+                break
+
+            self.tick()
+
+
+def puzzle1(filename: str) -> int:
+    sim = CaveSim(Cave.from_file(filename))
+    sim.tick_until_sand_cannot_rest()
+    return sim.cave.resting_sand_count
+
+
+def puzzle2(filename: str) -> int:
+    cave = Cave.from_file(filename)
+    cave.floor = True
+    sim = CaveSim(cave)
+    sim.tick_until_cave_blocks()
+    # for i in range(2500):
+    #     sim.tick_until_next_spawn()
+    print(cave)
+    return cave.resting_sand_count
 
 if __name__ == "__main__":
-    sim = CaveSim(Cave.from_file("../input/day14.txt"))
-    sim.tick_until_sand_cannot_rest()
-    print(sim.cave.resting_sand_count)
+    # print(puzzle1("../input/day14.txt"))
+    puzzle2("../input/day14.txt")
