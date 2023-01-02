@@ -1,4 +1,4 @@
-from functools import lru_cache
+from functools import cache, lru_cache
 from typing import Optional
 
 
@@ -97,15 +97,18 @@ class Cave:
     def add_resting_sand(self, x: int, y: int):
         self._resting_sand.setdefault(y, dict())[x] = 1
 
+    @cache
     def is_floor(self, y: int) -> bool:
         return self.floor and y == self.max[1]
 
+    @lru_cache()
     def is_rock(self, x: int, y: int) -> bool:
         return y in self._rock and self._rock[y].get(x) == 1
 
     def is_resting_sand(self, x: int, y: int) -> bool:
         return y in self._resting_sand and self._resting_sand[y].get(x) == 1
 
+    @lru_cache()
     def is_sand_source(self, x: int, y: int) -> bool:
         return (x, y) == self._sand_source
 
@@ -189,11 +192,9 @@ def puzzle2(filename: str) -> int:
     cave.floor = True
     sim = CaveSim(cave)
     sim.tick_until_cave_blocks()
-    # for i in range(2500):
-    #     sim.tick_until_next_spawn()
-    print(cave)
     return cave.resting_sand_count
 
+
 if __name__ == "__main__":
-    # print(puzzle1("../input/day14.txt"))
-    puzzle2("../input/day14.txt")
+    print(puzzle1("../input/day14.txt"))
+    print(puzzle2("../input/day14.txt"))
