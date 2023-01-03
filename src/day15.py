@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from functools import cache
-from typing import Optional
+from typing import Iterable, Optional
 
 
 @dataclass
@@ -24,25 +24,47 @@ class Sensor(BeaconSensorBase):
     def __str__(self):
         return "S"
 
+    def __hash__(self):
+        return hash((self.x, self.y))
+
     @property
+    @cache
     def distance_to_closest_beacon(self) -> int:
         return abs(self.x - self.closest_beacon.x) + abs(self.y - self.closest_beacon.y)
 
     @property
+    @cache
     def min_x(self) -> int:
         return self.x - self.distance_to_closest_beacon
 
     @property
+    @cache
     def min_y(self) -> int:
         return self.y - self.distance_to_closest_beacon
 
     @property
+    @cache
     def max_x(self) -> int:
         return self.x + self.distance_to_closest_beacon
 
     @property
+    @cache
     def max_y(self) -> int:
         return self.y + self.distance_to_closest_beacon
+
+    def row_coverage(self, y: int) -> Optional[tuple[int, int]]:
+        if not self.min_y <= y <= self.max_y:
+            return None
+
+        x_offset = self.distance_to_closest_beacon - abs(self.y - y)
+        return self.x - x_offset, self.x + x_offset
+
+    @property
+    def coverage(self) -> Iterable[tuple[int, int]]:
+        for y in range(self.min_y, self.max_y + 1):
+            row_coverage = self.row_coverage(y)
+            for x in range(row_coverage[0], row_coverage[1] + 1):
+                yield x, y
 
 
 class BeaconAndSensors:
@@ -115,7 +137,7 @@ class BeaconAndSensors:
         return max(all_x), max(all_y)
 
     def add_sensor(self, x: int, y: int, closest_beacon_x: int, closest_beacon_y: int) -> Sensor:
-        if beacon := self.find_beacon(closest_beacon_x, closest_beacon_y) is None:
+        if not (beacon := self.find_beacon(closest_beacon_x, closest_beacon_y)):
             beacon = Beacon(closest_beacon_x, closest_beacon_y)
             self._beacons.append(beacon)
 
@@ -130,11 +152,14 @@ class BeaconAndSensors:
         return next(iter([s for s in self._sensors if s.x == x and s.y == y]), None)
 
 
+def puzzle1(filename: str, y: int):
+    beacon_and_sensors = BeaconAndSensors.from_file(filename)
+    row_coverage: set[int] = set()
+    for sensor in beacon_and_sensors.sensors:
+        if rc := sensor.row_coverage(y):
+            row_coverage |= {x for x in range(rc[0], rc[1] + 1) if not beacon_and_sensors.find_beacon(x, y)}
+    return len(row_coverage)
+
+
 if __name__ == "__main__":
-    beacon_and_sensors = BeaconAndSensors.from_file("../input/day15sample.txt")
-    sensor = beacon_and_sensors.find_sensor(8, 7)
-    beacon = sensor.closest_beacon
-    print(sensor.x, sensor.y)
-    print(beacon.x, beacon.y)
-    print(sensor.min_x, sensor.min_y)
-    print(sensor.max_x, sensor.max_y)
+    print(puzzle1("../input/day15.txt", 2000000))
