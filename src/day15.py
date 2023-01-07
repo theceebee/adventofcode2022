@@ -66,6 +66,8 @@ class Sensor(BeaconSensorBase):
             for x in range(row_coverage[0], row_coverage[1] + 1):
                 yield x, y
 
+    def in_range(self, x: int, y: int) -> bool:
+        return (abs(self.x - x) + abs(self.y - y)) <= self.distance_to_closest_beacon
 
 class BeaconAndSensors:
 
@@ -161,5 +163,45 @@ def puzzle1(filename: str, y: int):
     return len(row_coverage)
 
 
+def puzzle2(filename: str, min_: int, max_: int) -> int:
+
+    def _in_range(coordinate_: tuple[int, int], min__: int, max__: int) -> bool:
+        return not (min(coordinate_) < min__ or max(coordinate_) > max__)
+
+    def _sensor_perimeter(sensor_: Sensor) -> Iterable[tuple[int, int]]:
+        perimeter_distance = sensor.distance_to_closest_beacon + 1
+        for x_offset in range(-perimeter_distance, perimeter_distance + 1):
+            y_offset = perimeter_distance - abs(x_offset)
+            if not y_offset:
+                yield sensor_.x + x_offset, sensor_.y
+            else:
+                yield sensor_.x + x_offset, sensor_.y + y_offset
+                yield sensor_.x + x_offset, sensor_.y + -y_offset
+
+    beacon_and_sensors = BeaconAndSensors.from_file(filename)
+    outside_range: set[tuple[int, int]] = set()
+
+    for sensor in beacon_and_sensors.sensors:
+
+        for coordinate in _sensor_perimeter(sensor):
+
+            if not _in_range(coordinate, min_, max_):
+                continue
+
+            covered = False
+
+            for other_sensor in [s for s in beacon_and_sensors.sensors if s is not sensor]:
+                if covered := other_sensor.in_range(*coordinate):
+                    break
+
+            if not covered:
+                outside_range.add(coordinate)
+
+    x, y = outside_range.pop()
+
+    return (4000000 * x) + y
+
+
 if __name__ == "__main__":
     print(puzzle1("../input/day15.txt", 2000000))
+    print(puzzle2("../input/day15.txt", 0, 4000000))
